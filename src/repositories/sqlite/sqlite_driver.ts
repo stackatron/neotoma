@@ -15,23 +15,26 @@ let DatabaseCtor: new (path: string) => any;
 let hasNativeSqlite = false;
 
 try {
-  // Suppress the ExperimentalWarning emitted by node:sqlite on Node 22+.
+  // node:sqlite (Node 22+) emits an ExperimentalWarning when first required. Node
+  // delivers warnings asynchronously (process.nextTick), so a wrapper that is
+  // only installed for the duration of the require() never sees it; the warning
+  // then lands on stderr of every CLI invocation. Install a permanent filter
+  // that drops exactly that warning and forwards everything else untouched.
   const originalEmit = process.emit.bind(process) as typeof process.emit;
   process.emit = function (event: string, ...args: unknown[]) {
+    const warning = args[0] as Record<string, unknown> | undefined;
     if (
       event === "warning" &&
-      args[0] != null &&
-      typeof (args[0] as Record<string, unknown>).name === "string" &&
-      (args[0] as Record<string, unknown>).name === "ExperimentalWarning" &&
-      typeof (args[0] as Record<string, unknown>).message === "string" &&
-      ((args[0] as Record<string, unknown>).message as string).includes("SQLite")
+      warning != null &&
+      warning.name === "ExperimentalWarning" &&
+      typeof warning.message === "string" &&
+      warning.message.includes("SQLite")
     ) {
       return false;
     }
     return (originalEmit as (...a: unknown[]) => boolean)(event, ...args);
   } as typeof process.emit;
   const nativeModule = nodeRequire("node:sqlite") as { DatabaseSync: new (path: string) => any };
-  process.emit = originalEmit;
   DatabaseCtor = nativeModule.DatabaseSync;
   hasNativeSqlite = true;
 } catch {
@@ -75,8 +78,11 @@ class SqliteDatabaseImpl {
     if (typeof this.db.pragma === "function") {
       return this.db.pragma(command) as unknown[];
     }
-    this.db.exec(`PRAGMA ${command}`);
-    return [];
+    // node:sqlite has no pragma() helper. Run the pragma as a statement so
+    // query pragmas (integrity_check, journal_mode, wal_checkpoint) return
+    // their rows exactly as better-sqlite3's pragma() does; assignment
+    // pragmas that return nothing yield [].
+    return this.db.prepare(`PRAGMA ${command}`).all() as unknown[];
   }
 
   transaction<TArgs extends unknown[], TResult>(

@@ -30,8 +30,10 @@ describe("postWithBase URL construction", () => {
     } as Response);
     globalThis.fetch = fetchSpy as unknown as typeof globalThis.fetch;
 
-    // Stub localStorage so getAuthToken() doesn't throw in Node
-    if (typeof globalThis.localStorage === "undefined") {
+    // Stub localStorage so getAuthToken() doesn't throw in Node. Node 22+ defines
+    // a localStorage global that has no getItem until --localstorage-file is set,
+    // so test for the method, not for the global.
+    if (typeof (globalThis as { localStorage?: { getItem?: unknown } }).localStorage?.getItem !== "function") {
       Object.defineProperty(globalThis, "localStorage", {
         value: {
           getItem: () => null,

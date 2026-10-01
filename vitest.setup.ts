@@ -18,6 +18,13 @@ if (useLocalDb) {
 }
 
 // Only set test key if no real key exists (don't override real keys)
+// Tests must never reach the npm registry: the MCP update notifier would prepend a
+// "New neotoma version available" banner to instructions and make instruction
+// comparisons depend on the network and on what npm has published today.
+if (!process.env.NO_UPDATE_NOTIFIER) {
+  process.env.NO_UPDATE_NOTIFIER = "1";
+}
+
 if (!process.env.OPENAI_API_KEY) {
   process.env.OPENAI_API_KEY = "test-openai-key";
 }

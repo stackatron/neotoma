@@ -15,8 +15,14 @@ export const SQLITE_BUSY_TIMEOUT_MS = Math.max(
 );
 
 function isSqliteBusyError(error: unknown): boolean {
-  const code = (error as { code?: string } | undefined)?.code;
-  return code === "SQLITE_BUSY" || code === "SQLITE_BUSY_SNAPSHOT";
+  const e = (error as { code?: string; errcode?: number; message?: string } | undefined) ?? {};
+  if (e.code === "SQLITE_BUSY" || e.code === "SQLITE_BUSY_SNAPSHOT") return true;
+  // node:sqlite reports every SQLite failure as ERR_SQLITE_ERROR and carries the
+  // SQLite result code in `errcode` (5 = SQLITE_BUSY, 517 = SQLITE_BUSY_SNAPSHOT).
+  if (e.code === "ERR_SQLITE_ERROR") {
+    return e.errcode === 5 || e.errcode === 517 || /database is locked/i.test(e.message ?? "");
+  }
+  return false;
 }
 
 /**

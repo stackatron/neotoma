@@ -5,6 +5,26 @@ import path from "node:path";
 
 import { runCli } from "../../src/cli/index.ts";
 
+/**
+ * Open a synchronous SQLite handle with whichever driver this runtime has,
+ * in the same order the product driver prefers: node:sqlite (Node 22+), then
+ * better-sqlite3. Both expose exec() and prepare().all()/get()/run(); the test
+ * sticks to that shared surface.
+ */
+async function openSqliteCtor(): Promise<new (file: string, opts?: { readonly?: boolean }) => any> {
+  try {
+    const { DatabaseSync } = (await import("node:sqlite")) as { DatabaseSync: any };
+    return class extends DatabaseSync {
+      constructor(file: string, opts?: { readonly?: boolean }) {
+        super(file, opts?.readonly ? { readOnly: true } : {});
+      }
+    };
+  } catch {
+    const { default: Database } = await import("better-sqlite3");
+    return Database as any;
+  }
+}
+
 async function runNeotomaCli(
   argvSuffix: string[],
   env: Record<string, string | undefined>
@@ -113,17 +133,17 @@ describe("CLI backup verify (smoke)", () => {
     const dataDir = path.join(parent, "data");
     await fs.mkdir(dataDir, { recursive: true });
 
-    const { default: Database } = await import("better-sqlite3");
+    const Database = await openSqliteCtor();
     const dbPath = path.join(dataDir, "neotoma.prod.db");
     const db = new Database(dbPath);
-    db.pragma("journal_mode=WAL");
+    db.exec("PRAGMA journal_mode=WAL");
     db.exec("create table t(x)");
     const insert = db.prepare("insert into t values (?)");
 
     // Checkpoint once so the main file holds a small prefix, then commit a large
     // batch that lives ONLY in the WAL — the state that made the two-file copy tear.
     for (let i = 0; i < 50; i++) insert.run(i);
-    db.pragma("wal_checkpoint(TRUNCATE)");
+    db.exec("PRAGMA wal_checkpoint(TRUNCATE)");
     for (let i = 50; i < 5000; i++) insert.run(i);
 
     // Keep committing while the backup runs.
@@ -165,7 +185,7 @@ describe("CLI backup verify (smoke)", () => {
       readonly: true,
     });
     try {
-      const integrity = snapshot.pragma("integrity_check") as Array<Record<string, unknown>>;
+      const integrity = snapshot.prepare("PRAGMA integrity_check").all() as Array<Record<string, unknown>>;
       expect(String(Object.values(integrity[0])[0])).toBe("ok");
       // A consistent point-in-time cut: at least everything committed before the
       // backup started, and never more than was ever written.

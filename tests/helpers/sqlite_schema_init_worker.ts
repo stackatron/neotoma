@@ -50,7 +50,14 @@ async function main(): Promise<void> {
 main()
   .then(() => process.exit(0))
   .catch((error) => {
-    const code = (error as { code?: string } | undefined)?.code ?? "unknown";
+    const e = (error as { code?: string; errcode?: number; message?: string } | undefined) ?? {};
+    // node:sqlite reports every failure as ERR_SQLITE_ERROR with the SQLite
+    // result code in `errcode`; normalize the busy family to the SQLITE_BUSY*
+    // names better-sqlite3 uses so callers see one vocabulary.
+    const busy =
+      e.code === "ERR_SQLITE_ERROR" &&
+      (e.errcode === 5 || e.errcode === 517 || /database is locked/i.test(e.message ?? ""));
+    const code = busy ? (e.errcode === 517 ? "SQLITE_BUSY_SNAPSHOT" : "SQLITE_BUSY") : (e.code ?? "unknown");
     process.stdout.write(
       JSON.stringify({ ok: false, code, message: String((error as Error)?.message ?? error) }) + "\n"
     );

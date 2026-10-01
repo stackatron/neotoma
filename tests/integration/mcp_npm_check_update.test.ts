@@ -3,11 +3,22 @@
  * Verifies response shape and behavior when registry is reachable or unreachable.
  */
 
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import semver from "semver";
 import { NeotomaServer } from "../../src/server.js";
 
 describe("MCP npm_check_update tool", () => {
+  // vitest.setup.ts sets NO_UPDATE_NOTIFIER=1 so ordinary tests never consult
+  // the npm registry; this file exercises the notifier itself, so re-enable it.
+  const savedNotifierGate = process.env.NO_UPDATE_NOTIFIER;
+  beforeAll(() => {
+    delete process.env.NO_UPDATE_NOTIFIER;
+  });
+  afterAll(() => {
+    if (savedNotifierGate === undefined) delete process.env.NO_UPDATE_NOTIFIER;
+    else process.env.NO_UPDATE_NOTIFIER = savedNotifierGate;
+  });
+
   let server: NeotomaServer;
 
   beforeAll(() => {
