@@ -61,18 +61,18 @@ flowchart TD
 - Do not hand-edit suite inventory entries in this file. Update the generator or the repository tree, then regenerate.
 
 ## Repo-wide summary
-- Total automated test files: **616**
-- Backend and repo Vitest files: **580**
+- Total automated test files: **618**
+- Backend and repo Vitest files: **582**
 - Frontend Vitest files: **10**
 - Playwright spec files: **26**
 
 ### Suite counts
 | Suite | Files |
 |---|---:|
-| Vitest unit tests | 170 |
+| Vitest unit tests | 171 |
 | Vitest service tests | 44 |
 | Source-adjacent tests | 66 |
-| Vitest integration tests | 178 |
+| Vitest integration tests | 179 |
 | Vitest CLI tests | 78 |
 | Vitest contract tests | 19 |
 | Vitest security tests | 9 |
@@ -109,7 +109,7 @@ flowchart TD
 **Runner:** `vitest`
 **Command:** `npm test -- tests/unit`
 **Requirements:** Basic `.env` if required by the module under test.
-**Files (170):**
+**Files (171):**
 - `tests/unit/aauth_admission.test.ts`
 - `tests/unit/aauth_attestation_apple_se.test.ts`
 - `tests/unit/aauth_attestation_revocation.test.ts`
@@ -207,6 +207,7 @@ flowchart TD
 - `tests/unit/mcp_initialize_version.test.ts`
 - `tests/unit/mcp_instance_skill_hints.test.ts`
 - `tests/unit/mcp_instruction_doc.test.ts`
+- `tests/unit/mcp_instruction_token_budget.test.ts`
 - `tests/unit/mcp_instructions_fallback_invariants.test.ts`
 - `tests/unit/mcp_instructions_skill_auto_loading.test.ts`
 - `tests/unit/mcp_proxy.test.ts`
@@ -410,7 +411,7 @@ flowchart TD
 **Runner:** `vitest`
 **Command:** `npm run test:integration` or `npx vitest run tests/integration`
 **Requirements:** Database configured; remote-dependent subsets additionally need `RUN_REMOTE_TESTS=1`.
-**Files (178):**
+**Files (179):**
 - `tests/integration/aauth_attribution_stamping.test.ts`
 - `tests/integration/aauth_mcp_capability_parity.test.ts`
 - `tests/integration/aauth_mcp_initialize_admission.test.ts`
@@ -442,6 +443,7 @@ flowchart TD
 - `tests/integration/correct_http_mcp_parity.test.ts`
 - `tests/integration/correct_unknown_field_append.test.ts`
 - `tests/integration/correction_scalar_tiebreak_surfaces.test.ts`
+- `tests/integration/create_relationship_source_identity.test.ts`
 - `tests/integration/cross_instance_issues.test.ts`
 - `tests/integration/csp_local_http.test.ts`
 - `tests/integration/cursor_hook_stop_backfill.test.ts`

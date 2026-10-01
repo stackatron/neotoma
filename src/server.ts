@@ -3425,32 +3425,17 @@ export class NeotomaServer {
     const userId = this.getAuthenticatedUserId();
 
     try {
-      // Create a source for this relationship
-      const { data: source, error: sourceError } = await db
-        .from("sources")
-        .insert({
-          content_hash: `relationship_${Date.now()}`,
-          mime_type: "application/json",
-          storage_url: `internal://relationship/${parsed.relationship_type}`,
-          file_size: 0, // No file for direct relationship creation
-          user_id: userId,
-        })
-        .select()
-        .single();
-
-      if (sourceError || !source) {
-        throw new McpError(
-          ErrorCode.InternalError,
-          `Failed to create source: ${sourceError?.message || "Unknown error"}`
-        );
-      }
-
+      // Source row for this relationship is derived inside relationshipsService:
+      // content_hash = sha256(relationship_key:user_id:metadata), reusing an
+      // existing row when present. Passing source_id: null selects that path
+      // (same as the batch create_relationships path). A wall-clock hash here
+      // collided for relationships created within the same millisecond.
       const { relationshipsService } = await import("./services/relationships.js");
       const snapshot = await relationshipsService.createRelationship({
         relationship_type: parsed.relationship_type,
         source_entity_id: parsed.source_entity_id,
         target_entity_id: parsed.target_entity_id,
-        source_id: source.id,
+        source_id: null,
         metadata: parsed.metadata || {},
         user_id: userId,
       });
